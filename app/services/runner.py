@@ -6,6 +6,7 @@ from flask import current_app
 from app.db import db_transaction, get_db
 from app.services.dedup import normalize_item_key
 from app.services.mock_catalog import CATALOGS, parse_catalog_html, render_catalog_page
+from app.services.reconciliation import create_reconciliation
 
 
 def run_job(job_id: int) -> dict:
@@ -62,9 +63,14 @@ def run_job(job_id: int) -> dict:
     current_app.logger.info(
         "job %s finished inserted=%s skipped_dup=%s", job_id, inserted, skipped_dup
     )
+
+    # 每次运行结束后自动对账：只写对账表，不改动本次正式结果。
+    reconciliation_id = create_reconciliation(job_id)
+
     return {
         "status": "done",
         "inserted": inserted,
         "skipped_dup": skipped_dup,
         "total_source": len(items),
+        "reconciliation_id": reconciliation_id,
     }

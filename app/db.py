@@ -54,6 +54,36 @@ def init_db(app):
                 fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
                 UNIQUE(job_id, item_key)
             );
+            CREATE TABLE IF NOT EXISTS reconciliations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id INTEGER NOT NULL REFERENCES crawl_jobs(id) ON DELETE CASCADE,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS reconciliation_diffs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                reconciliation_id INTEGER NOT NULL
+                    REFERENCES reconciliations(id) ON DELETE CASCADE,
+                diff_type TEXT NOT NULL CHECK (
+                    diff_type IN ('dir_only', 'db_only', 'title_mismatch')
+                ),
+                item_code TEXT NOT NULL,
+                dir_title TEXT,
+                db_title TEXT,
+                retained INTEGER NOT NULL DEFAULT 0,
+                retain_reason TEXT,
+                retained_at TEXT,
+                UNIQUE(reconciliation_id, diff_type, item_code)
+            );
+            CREATE TABLE IF NOT EXISTS catchup_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                reconciliation_id INTEGER NOT NULL UNIQUE
+                    REFERENCES reconciliations(id) ON DELETE CASCADE,
+                job_id INTEGER NOT NULL REFERENCES crawl_jobs(id) ON DELETE CASCADE,
+                item_codes_json TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'running',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                finished_at TEXT
+            );
             """
         )
         db.commit()

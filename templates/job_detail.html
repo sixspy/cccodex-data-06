@@ -12,6 +12,11 @@
   {% elif job.status == 'done' %}
   <p class="muted">已完成于 {{ job.finished_at or '—' }}</p>
   {% endif %}
+  <p>
+    <a class="recon-link" href="{{ url_for('reconciliation.view', job_id=job.id) }}">
+      查看对账与补差 →
+    </a>
+  </p>
 </section>
 <section class="card">
   <h2>落库记录</h2>

@@ -33,3 +33,36 @@ code { font-size: 0.85em; }
 .flash .error { color: var(--err); }
 .grid-form { display: grid; gap: 0.75rem; grid-template-columns: 1fr 1fr auto; align-items: end; }
 @media (max-width: 720px) { .grid-form { grid-template-columns: 1fr; } }
+
+/* ---- 对账页 ---- */
+.recon-toolbar { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 0.75rem; }
+.recon-toolbar label.inline { display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+.recon-link { font-weight: 600; color: var(--accent); }
+.filter-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.chip {
+  display: inline-block; padding: 0.35rem 0.7rem; border-radius: 999px;
+  border: 1px solid #3a4556; color: var(--text); text-decoration: none; font-size: 0.88rem;
+}
+.chip:hover { border-color: var(--accent); }
+.chip-on { background: var(--accent); border-color: var(--accent); color: #06101d; font-weight: 600; }
+.chip.diff-dir_only { border-color: #5a7fa8; }
+.chip.diff-db_only { border-color: #a88a5a; }
+.chip.diff-title_mismatch { border-color: #a85a8f; }
+.diff-section { border-left: 4px solid #3a4556; }
+.diff-section.diff-dir_only { border-left-color: #5a9fd4; }
+.diff-section.diff-db_only { border-left-color: #d4a85a; }
+.diff-section.diff-title_mismatch { border-left-color: #d45aa8; }
+.tag.retained { background: #4d3a1e; color: #f0cf9f; }
+.tag.not-retained { background: #2a3545; color: var(--muted); }
+.tag.running { background: #1e3a4d; color: #9fcdf0; }
+.row-retained { opacity: 0.72; }
+.retain-reason { margin-top: 0.25rem; font-size: 0.8rem; }
+.retain-form { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.retain-form input { min-width: 12rem; }
+.btn-secondary { background: #2a3545; border-color: #3a4556; }
+.code-pill {
+  display: inline-block; padding: 0.1rem 0.45rem; margin: 0 0.15rem;
+  border: 1px solid #3a4556; border-radius: 4px; background: #0f1419;
+}
+.catchup-card { border: 1px solid #2f5d8a; }
+

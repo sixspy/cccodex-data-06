@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}对账 · 任务 {{ job.id }}{% endblock %}
+{% block body %}
+<p><a href="{{ url_for('jobs.detail', job_id=job.id) }}">← 返回任务详情</a></p>
+
+<section class="card">
+  <h1>运行后对账 · {{ job.name }}</h1>
+  <p class="muted">
+    种子 <code>{{ job.seed_path }}</code> · 任务状态
+    <span class="tag {{ job.status }}">{{ job.status }}</span>
+  </p>
+  <p class="muted">
+    对账只比较并标记差异，<strong>不会改动正式采集结果</strong>。差异身份为条目标识编码（sku）。
+  </p>
+  <div class="recon-toolbar">
+    <form method="post" action="{{ url_for('reconciliation.rerun', job_id=job.id) }}">
+      <button type="submit">按目录当前状态重新对账</button>
+    </form>
+    {% if history %}
+    <form method="get" action="{{ url_for('reconciliation.view', job_id=job.id) }}">
+      <label class="inline">对账批次
+        <select name="recon" onchange="this.form.submit()">
+          {% for h in history %}
+          <option value="{{ h.id }}" {% if recon and h.id == recon.id %}selected{% endif %}>
+            #{{ h.id }} · {{ h.created_at }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+    </form>
+    {% endif %}
+  </div>
+  {% if recon is none %}
+  <p class="muted">尚无对账批次。任务运行结束后会自动对账，也可点上方按钮立即对账。</p>
+  {% endif %}
+</section>
+
+{% if recon %}
+<section class="card">
+  <h2>按差异类型筛选</h2>
+  <div class="filter-bar">
+    <a class="chip {% if not diff_type %}chip-on{% endif %}"
+       href="{{ url_for('reconciliation.view', job_id=job.id, recon=recon.id) }}">
+      全部
+    </a>
+    {% for t in grouped.keys() %}
+    <a class="chip diff-{{ t }} {% if diff_type == t %}chip-on{% endif %}"
+       href="{{ url_for('reconciliation.view', job_id=job.id, recon=recon.id, type=t) }}">
+      {{ labels[t] }}（{{ grouped[t]|length }}）
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{# ---------------- 补差控制区 ---------------- #}
+<section class="card catchup-card">
+  <h2>补差任务</h2>
+  <p class="muted">
+    只有「{{ labels['dir_only'] }}」中<strong>尚未人工保留</strong>的编码才允许补差；
+    标题不同不会被当作缺失补抓；补差只抓下列指定编码。
+  </p>
+  {% if catchup %}
+    <p>
+      本批次补差状态：
+      <span class="tag {{ 'done' if catchup.status == 'done' else 'running' }}">{{ catchup.status }}</span>
+      · 创建于 {{ catchup.created_at }}{% if catchup.finished_at %} · 完成于 {{ catchup.finished_at }}{% endif %}
+    </p>
+    <p class="muted">补差编码：<code>{{ catchup.item_codes_json }}</code></p>
+    {% if catchup.status == 'running' %}
+    <p class="muted">补差正在运行，不能再次触发。</p>
+    {% else %}
+    <p class="muted">同一批差异已生成过补差，不能再生成第二条。</p>
+    {% endif %}
+  {% elif eligible_codes %}
+    <p>本次可补差编码（{{ eligible_codes|length }} 个）：
+      {% for c in eligible_codes %}<code class="code-pill">{{ c }}</code>{% endfor %}
+    </p>
+    <form method="post" action="{{ url_for('reconciliation.catchup', recon_id=recon.id) }}"
+          onsubmit="return confirm('确认只对以上编码生成补差任务？');">
+      <button type="submit">生成补差任务（仅含以上编码）</button>
+    </form>
+  {% else %}
+    <p class="muted">没有可补差的编码：缺失项可能已全部人工保留，或本批次不存在缺失。</p>
+  {% endif %}
+</section>
+
+{# ---------------- 三类差异分区 ---------------- #}
+{% for t, rows in grouped.items() %}
+{% if not diff_type or diff_type == t %}
+<section class="card diff-section diff-{{ t }}">
+  <h2>{{ labels[t] }} <span class="muted">（{{ rows|length }} 条）</span></h2>
+  <table>
+    <thead>
+      <tr>
+        <th>编码</th>
+        <th>目录侧标题</th>
+        <th>库侧标题</th>
+        <th>保留状态</th>
+        <th>人工操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in rows %}
+      <tr class="{% if d.retained %}row-retained{% endif %}">
+        <td><code>{{ d.item_code }}</code></td>
+        <td>{{ d.dir_title or '—' }}</td>
+        <td>{{ d.db_title or '—' }}</td>
+        <td>
+          {% if d.retained %}
+          <span class="tag retained">已保留</span>
+          <div class="muted retain-reason">原因：{{ d.retain_reason }}<br/>{{ d.retained_at }}</div>
+          {% else %}
+          <span class="tag not-retained">未保留</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if not d.retained %}
+          <form class="retain-form" method="post"
+                action="{{ url_for('reconciliation.retain', recon_id=recon.id, diff_id=d.id) }}">
+            <input type="hidden" name="filter_type" value="{{ diff_type }}" />
+            <input name="reason" placeholder="保留原因（必填）" required maxlength="200" />
+            <button type="submit" class="btn-secondary">标记人工保留</button>
+          </form>
+          {% else %}
+          <span class="muted">保留项仍会参与之后对账，但不会进入补差</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">本类暂无差异</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endblock %}
